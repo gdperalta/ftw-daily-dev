@@ -9,12 +9,15 @@ import { FormattedMessage, intlShape, injectIntl } from '../../util/reactIntl';
 import { required, bookingDatesRequired, composeValidators } from '../../util/validators';
 import { START_DATE, END_DATE } from '../../util/dates';
 import { propTypes } from '../../util/types';
-import { Form, IconSpinner, PrimaryButton, FieldDateRangeInput } from '../../components';
+import { formatMoney } from '../../util/currency';
+import { types as sdkTypes } from '../../util/sdkLoader';
+import { Form, IconSpinner, PrimaryButton, FieldDateRangeInput, FieldCheckbox } from '../../components';
 import EstimatedBreakdownMaybe from './EstimatedBreakdownMaybe';
 
 import css from './BookingDatesForm.module.css';
 
 const identity = v => v;
+const { Money } = sdkTypes;
 
 export class BookingDatesFormComponent extends Component {
   constructor(props) {
@@ -55,6 +58,7 @@ export class BookingDatesFormComponent extends Component {
   handleOnChange(formValues) {
     const { startDate, endDate } =
       formValues.values && formValues.values.bookingDates ? formValues.values.bookingDates : {};
+    const hasCleaningFee = formValues.values.cleaningFee && formValues.values.cleaningFee.length > 0;
     const listingId = this.props.listingId;
     const isOwnListing = this.props.isOwnListing;
 
@@ -111,6 +115,7 @@ export class BookingDatesFormComponent extends Component {
             lineItems,
             fetchLineItemsInProgress,
             fetchLineItemsError,
+            cleaningFee,
           } = fieldRenderProps;
           const { startDate, endDate } = values && values.bookingDates ? values.bookingDates : {};
 
@@ -133,6 +138,27 @@ export class BookingDatesFormComponent extends Component {
             <p className={css.sideBarError}>
               <FormattedMessage id="BookingDatesForm.timeSlotsError" />
             </p>
+          ) : null;
+
+          const formattedCleaningFee = cleaningFee
+            ? formatMoney(
+                intl,
+                new Money(cleaningFee.amount, cleaningFee.currency)
+              )
+            : null;
+
+          const cleaningFeeLabel = intl.formatMessage(
+            { id: 'BookingDatesForm.cleaningFeeLabel' },
+            { fee: formattedCleaningFee }
+          );
+          
+          const cleaningFeeMaybe = cleaningFee ? (
+            <FieldCheckbox
+              id="cleaningFee"
+              name="cleaningFee"
+              label={cleaningFeeLabel}
+              value="cleaningFee"
+            />
           ) : null;
 
           // This is the place to collect breakdown estimation data.
@@ -221,7 +247,7 @@ export class BookingDatesFormComponent extends Component {
                 )}
                 disabled={fetchLineItemsInProgress}
               />
-
+              {cleaningFeeMaybe}
               {bookingInfoMaybe}
               {loadingSpinnerMaybe}
               {bookingInfoErrorMaybe}
